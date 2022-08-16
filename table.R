@@ -1,9 +1,11 @@
 library(tidyverse)
 library(REDCapR)
 
-
 # Загрузка данных ---------------------------------------------------------
-data_redcap    <- read_csv('_DATA_2022-08-08_1325.csv')
+uri     <- "http://redcap.fccho-moscow.ru/api/"
+token   <- "9577A86D1421413C586D52B5AB35F5C4"
+data_redcap    <- REDCapR::redcap_read(redcap_uri=uri, token=token, raw_or_label = "label")$data
+
 
 data <- readxl::read_xlsx('общая база.xlsx')
 data <- data %>% 
@@ -17,7 +19,8 @@ data <- data %>%
          outcome = 'Исход',
          outcome_date = 'Дата исхода',
          date = 'Дата первичной операции',
-         mgroup = 'Молекулярная группа') 
+         mgroup = 'Молекулярная группа')%>% 
+  mutate_if(lubridate::is.instant, lubridate::date)
 
 
 # Переименовываем столбцы ---------------------------------------------------------
@@ -31,9 +34,9 @@ data <- data %>%
 
 data_one_new <- data_redcap %>%
   select(record_id,relapse,relapse_dt,event,event_date) %>% 
-  filter(event == 'REL' & is.na(relapse)) # ищем, у кого не проставлен рецидив
+  filter(event == 'REL' & is.na(relapse))
 
-data_double_first <- data %>% # Таблица с первичными записями
+data_double_first <- data %>% 
   select(first_name,
          last_name,
          birthdate,
@@ -43,7 +46,7 @@ data_double_first <- data %>% # Таблица с первичными запи�
          mgroup) %>% 
   mutate(pat_fio = paste(last_name,str_sub(`first_name`,1,1),gsub("-", "",birthdate), sep = "_"))
 
-data_double_rel <- data %>% # таблица с записями рецидивов
+data_double_rel <- data %>% 
   select(first_name,
          last_name,
          birthdate,
@@ -96,13 +99,13 @@ labels <- c(record_id = 'record_id',
             outcome.x = 'Исход (база)',
             outcome_date.x = 'Дата исхода (база)',
             pat_fio = 'Ключ',
-            first_name...1 = 'Имя (таблица, первычный)',
-            last_name...2 = 'Фамилия (таблица, первычный)',
-            birthdate...3 = 'Дата рождения (таблица, первычный)',
-            ds_dt...4 = 'Дата установления первичного диагноза МБ (таблица, первычный)',
-            date...5 = 'Дата операции (таблица, первычный)',
-            relapse_dt.y = 'Дата рецидива (таблица, первычный)',
-            mgroup.y = 'Молекулярная группа (таблица, первычный)',
+            first_name...1 = 'Имя (таблица, первичный)',
+            last_name...2 = 'Фамилия (таблица, первичный)',
+            birthdate...3 = 'Дата рождения (таблица, первичный)',
+            ds_dt...4 = 'Дата установления первичного диагноза МБ (таблица, первичный)',
+            date...5 = 'Дата операции (таблица, первичный)',
+            relapse_dt.y = 'Дата рецидива (таблица, первичный)',
+            mgroup.y = 'Молекулярная группа (таблица, первичный)',
             first_name...9 = 'Имя (таблица, рецидив)',
             last_name...10 = 'Фамилия (таблица, рецидив)',
             birthdate...11 = 'Дата рождения (таблица, рецидив)',
@@ -119,5 +122,10 @@ data_double <- data_double %>%
              outcome.x,	outcome_date.x,	first_name...1,	last_name...2,	birthdate...3,	ds_dt...4,	date...5,	relapse_dt.y,	mgroup.y,	
              first_name...9,	last_name...10,	birthdate...11,	ds_dt...12,	diff_date_1, date...13,	diff_date_2, outcome.y,	outcome_date.y)
 
-data_double <- data_double %>% rename_with(~ labels[.])
+data_double <- data_double %>% 
+  rename_with(~ labels[.])
+data_double <- arrange(data_double,record_id,table_id)
+
+
+
 openxlsx::write.xlsx(data_double, 'data.xlsx')
