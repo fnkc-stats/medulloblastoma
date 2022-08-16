@@ -167,11 +167,21 @@ data_recidive$hist <- recode(data_recidive$hist, 'КЛАСС' =	'CLASS',
                     'ЭКСТ НОД' = 'EXTNOD',
                     'АНАПЛ' =	'LCA')
 
-data_recidive$location___h <- as.integer(str_detect(data_recidive$location,'ЧМ'))
-data_recidive$location___4v <- as.integer(str_detect(data_recidive$location,'4Ж'))
-data_recidive$location___v <- as.integer(str_detect(data_recidive$location,'ГС'))
-data_recidive$location <- NULL
+data_recidive_loc <- data_recidive %>%
+  select(location) %>% 
+  transmute(location___h = as.integer(str_detect(data_recidive$location,'ЧМ')),
+            location___4v = as.integer(str_detect(data_recidive$location,'4Ж')),
+            location___v = as.integer(str_detect(data_recidive$location,'ГС')))
+data_recidive_loc$location___h <- recode(data_recidive_loc$location___h, .missing = '0', '1' = '1', '0' = '0')
+data_recidive_loc$location___4v <- recode(data_recidive_loc$location___4v, .missing = '0', '1' = '1', '0' = '0') 
+data_recidive_loc$location___v <- recode(data_recidive_loc$location___v, .missing = '0', '1' = '1', '0' = '0') 
+  
+data_recidive <- data_recidive %>%
+  select(record_id, first_name,	last_name,	middle_name,	sex,	birthdate,	mgroup, hist,	ds_dt,	
+         event,	event_date,	outcome,	outcome_date) %>%
+  bind_cols(., data_recidive_loc)
 
+data_recidive$mgroup <- recode(data_recidive$mgroup, 'group 3' = 'GR3', 'group 4' = 'GR4', 'WNT' = 'WNT', 'SHH' = 'SHH')
 
 
 # Записываем файлы -------------------------------------
