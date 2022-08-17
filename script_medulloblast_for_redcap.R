@@ -105,9 +105,10 @@ data_one <- data_redcap %>%
   select(record_id,
          first_name,
          last_name,
-         birthdate) %>%
+         birthdate,
+         his_id) %>%
   mutate(pat_fio = paste(last_name,str_sub(`first_name`,1,1),gsub("-", "",birthdate), sep = "_")) %>% 
-  select(record_id,pat_fio)
+  select(record_id,pat_fio,his_id)
 data_double <- data_double %>% left_join(data_one, by = 'pat_fio')
 
 data_base <- data_double %>% 
@@ -208,26 +209,23 @@ data_recidive$event_date[is.na(data_recidive$event_date)] <- ''
 data_recidive[data_recidive$relapse_type != '', "relapse"] = '1'
 data_recidive[data_recidive$relapse_type == '', "relapse"] = 'NI'
 
+data_recidive <- data_recidive %>% 
+  mutate(memmat_dur = abs(difftime(data_recidive$memmat_end_dt, data_recidive$memmat_start_dt, units = "days")))
+
 data_recidive$ct_start_dt <- as.character(data_recidive$ct_start_dt)
-data_recidive$ct_start_dt[is.na(data_recidive$ct_start_dt)] <- ''
 data_recidive$date <- as.character(data_recidive$date)
-data_recidive$date[is.na(data_recidive$date)] <- ''
 data_recidive$drt_dt <- as.character(data_recidive$drt_dt)
-data_recidive$drt_dt[is.na(data_recidive$drt_dt)] <- ''
 data_recidive$drt_dose <- as.character(data_recidive$drt_dose)
-data_recidive$drt_dose[is.na(data_recidive$drt_dose)] <- ''
 data_recidive$drt_bust_dose <- as.character(data_recidive$drt_bust_dose)
-data_recidive$drt_bust_dose[is.na(data_recidive$drt_bust_dose)] <- ''
 data_recidive$drt_end_stop <- as.character(data_recidive$drt_end_stop)
-data_recidive$drt_end_stop[is.na(data_recidive$drt_end_stop)] <- ''
 data_recidive$ct_num_blok <- as.character(data_recidive$ct_num_blok)
-data_recidive$ct_num_blok[is.na(data_recidive$ct_num_blok)] <- ''
 data_recidive$memmat_start_dt <- as.character(data_recidive$memmat_start_dt)
-data_recidive$memmat_start_dt[is.na(data_recidive$memmat_start_dt)] <- ''
 data_recidive$memmat_end_dt <- as.character(data_recidive$memmat_end_dt)
-data_recidive$memmat_end_dt[is.na(data_recidive$memmat_end_dt)] <- ''
 data_recidive$ct_end_dt <- as.character(data_recidive$ct_end_dt)
-data_recidive$ct_end_dt[is.na(data_recidive$ct_end_dt)] <- ''
+
+data_recidive$memmat_dur <- as.character(data_recidive$memmat_dur)
+data_recidive$his_id <- as.character(data_recidive$his_id)
+data_recidive[is.na(data_recidive)] <- ''
 
 
 # Записываем файлы -------------------------------------
