@@ -5,7 +5,7 @@ library(lubridate)
 
 # Загрузка данных ---------------------------------------------------------
 uri     <- "http://redcap.fccho-moscow.ru/api/"
-token   <- "9577A86D1421413C586D52B5AB35F5C4"
+token   <- ""
 data_redcap    <- REDCapR::redcap_read(redcap_uri=uri, token=token, raw_or_label = "label")$data
 
 
@@ -118,7 +118,7 @@ data_base <- data_base %>% mutate(record_id = paste(record_id))
 
 # Собираем таблицу ---------------------------------------------------------
 
-data <- data_first
+data <- bind_rows(data_first,data_base)
 
 length(t(unique(data[!is.na(data$record_id),"record_id"]))) == nrow(data[!is.na(data$record_id),])
 data[duplicated(data),]
@@ -131,20 +131,26 @@ data <- data %>%
   mutate(relapse = coalesce(relapse, event))
 data$relapse <- recode(data$relapse, 'рецидив' = '1', '1' = '1' , .default = NA_character_)
 
-
-data$location___h <- as.integer(str_detect(data$location,'ЧМ'))
-data$location___4v <- as.integer(str_detect(data$location,'4Ж'))
-data$location___v <- as.integer(str_detect(data$location,'ГС'))
-data$location <- NULL
-
 data$hist <- recode(data$hist, 'КЛАСС' =	'CLASS',
                         'НОД' =	'NOD',
                         'ЭКСТ НОД' = 'EXTNOD',
                         'АНАПЛ' =	'LCA')
 
+data$mgroup <- recode(data$mgroup, 'group 3' = 'GR3', 'group 4' = 'GR4', 'WNT' = 'WNT', 'SHH' = 'SHH')
+
+data_loc <- data %>%
+  select(location) %>% 
+  transmute(location___h = as.integer(str_detect(data$location,'ЧМ')),
+            location___4v = as.integer(str_detect(data$location,'4Ж')),
+            location___v = as.integer(str_detect(data$location,'ГС')))
+data_loc$location___h <- recode(data_loc$location___h, .missing = '0', '1' = '1', '0' = '0')
+data_loc$location___4v <- recode(data_loc$location___4v, .missing = '0', '1' = '1', '0' = '0') 
+data_loc$location___v <- recode(data_loc$location___v, .missing = '0', '1' = '1', '0' = '0') 
+
 data <- data %>% 
     select(record_id,	first_name,	last_name,	middle_name,	sex,	birthdate,	mgroup,	hist,	ds_dt,	event,
-           event_date,	outcome,	outcome_date,	relapse,	location___h,	location___4v,	location___v)
+           event_date,	outcome,	outcome_date,	relapse,	location) %>%
+    bind_cols(., data_recidive_loc)
 
 
 
@@ -192,3 +198,4 @@ openxlsx::write.xlsx(data, 'data_medull.xlsx')
 
 write_csv(data_recidive, 'data_medull_rel.csv')
 openxlsx::write.xlsx(data_recidive, 'data_medull_rel.xlsx')
+
